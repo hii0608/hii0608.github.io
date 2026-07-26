@@ -146,11 +146,11 @@ function init(){
     .map(n=>GRAPH.edges.filter(e=>e.to===n.id).length));
   const nodeSize = n=>{
     const t=n.data('type'), deg=n.data('weightSum');
-    if(t==='project') return n.data('group')==='research'?64:50;   // stars, main larger
+    if(t==='project') return n.data('group')==='research'?66:44;   // main cards clearly larger (size = importance)
     if(t==='domain')  return 26+Math.min(deg*3,18);
     return 15+Math.min(deg*6,44);                                   // skill: bigger = used more
   };
-  const shapeOf = n=> n.data('type')==='project' ? 'star' : 'ellipse'; // shape only splits project vs rest
+  const shapeOf = n=> n.data('type')==='project' ? 'round-rectangle' : 'ellipse'; // shape only splits project vs rest
   cy=cytoscape({
     container:el('cy'), elements, wheelSensitivity:.25,
     style:[
@@ -165,7 +165,6 @@ function init(){
         'text-max-width':'110px','text-wrap':'ellipsis','border-width':0,'transition-property':'opacity','transition-duration':'.18s'}},
       {selector:'node[type="project"]',style:{'border-width':2,'border-color':'#ffffff'}}, // crisp edge on stars
       {selector:'node[type="domain"]',style:{'border-width':2,'border-color':'#ffffff'}}, // ring separates domain circles from skill circles
-      {selector:'node[type="project"][group="research"]',style:{'border-width':4,'border-color':PALETTE.ring}}, // gold ring = main
       {selector:'edge',style:{'width':e=>Math.max(1,(e.data('weight')||1)*.8),'line-color':getVar('--line'),
         'curve-style':'bezier','opacity':.7,'target-arrow-shape':e=>e.data('rel')==='depends-on'?'triangle':'none',
         'target-arrow-color':getVar('--line'),'arrow-scale':.8}},
@@ -197,10 +196,9 @@ function getVar(v){ return getComputedStyle(document.documentElement).getPropert
 function buildLegend(){
   const g=(sym,color,label,extra='')=>`<div><span style="color:${color};font-size:15px;line-height:1;width:16px;text-align:center">${sym}</span>${label}${extra}</div>`;
   el('legend').innerHTML =
-      g('★',TYPE_COLORS.project,'프로젝트')
+      g('■',TYPE_COLORS.project,'프로젝트',' <span style="opacity:.6">(큰 것 = 메인·연구/ML)</span>')
     + g('●',TYPE_COLORS.domain,'도메인')
-    + g('●',TYPE_COLORS.skill,'스킬',' <span style="opacity:.6">(크기·진하기 = 사용빈도)</span>')
-    + g('★',PALETTE.ring,'메인 (연구·ML)');
+    + g('●',TYPE_COLORS.skill,'스킬',' <span style="opacity:.6">(크기·진하기 = 사용빈도)</span>');
 }
 
 function buildFilters(){
