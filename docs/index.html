@@ -22,7 +22,7 @@
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;
-    background:var(--bg);color:var(--ink);overflow:hidden}
+    background:var(--bg);color:var(--ink);overflow:hidden;display:flex;flex-direction:column}
   header{padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel);z-index:5;position:relative}
   header h1{margin:0;font-size:17px;letter-spacing:-.2px}
   header p{margin:3px 0 0;font-size:12.5px;color:var(--muted)}
@@ -34,7 +34,8 @@
   .tag.reset{background:transparent}
   .tag.grp{font-weight:600}
   .tag.grp[aria-pressed="true"]{background:#f5a524;border-color:#f5a524;color:#3a2e05}
-  .stage{position:relative;height:calc(100% - 0px)}
+  #graphView{flex:1;min-height:0;display:flex;flex-direction:column}
+  .stage{position:relative;flex:1;min-height:0}
   #cy{position:absolute;inset:0}
   .legend{position:absolute;left:12px;bottom:12px;background:var(--panel);border:1px solid var(--line);
     border-radius:12px;padding:9px 12px;font-size:12px;box-shadow:var(--shadow)}
@@ -83,6 +84,27 @@
     .legend{font-size:11px;padding:7px 9px}
     .hint{display:none}
   }
+  /* view tabs */
+  #tabs{display:flex;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex:none;z-index:5;position:relative}
+  #tabs button{border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:9px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+  #tabs button[aria-selected="true"]{background:var(--project);border-color:var(--project);color:#fff}
+  /* card view */
+  #cardsView{flex:1;min-height:0;overflow:auto;padding:16px 16px 64px;background:var(--bg)}
+  .cardWrap{max-width:1160px;margin:0 auto}
+  .secTitle{font-size:13px;font-weight:700;color:var(--muted);margin:20px 4px 12px;letter-spacing:.3px}
+  .secTitle:first-child{margin-top:4px}
+  .cardGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:9px;box-shadow:var(--shadow)}
+  .card h3{margin:0;font-size:15px;line-height:1.35}
+  .card .cmeta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .card .csum{font-size:12.5px;color:var(--muted);line-height:1.55;flex:1}
+  .card .cbadges{display:flex;gap:5px;flex-wrap:wrap}
+  .card .cb{font-size:11px;padding:3px 8px;border-radius:7px;background:var(--chip);color:var(--ink)}
+  .card .cb.more{opacity:.6}
+  .card .cact{display:flex;gap:8px;margin-top:2px}
+  .card .cbtn{flex:1;text-align:center;text-decoration:none;font-size:12.5px;font-weight:600;padding:8px 6px;border-radius:9px;border:1px solid var(--line);color:var(--ink);background:var(--chip)}
+  .card .cbtn.pri{background:var(--project);border-color:var(--project);color:#fff}
+  .card .cbtn.dis{opacity:.45;pointer-events:none}
 </style>
 </head>
 <body>
@@ -90,6 +112,12 @@
     <h1 id="title">hii0608 · 프로젝트 포트폴리오</h1>
     <p id="tagline">그래프 기반 머신러닝과 MLOps 파이프라인</p>
   </header>
+  <div id="tabs" role="tablist" aria-label="보기 전환">
+    <button id="tab-cards" role="tab" aria-selected="true">🗂️ 카드</button>
+    <button id="tab-graph" role="tab" aria-selected="false">🕸️ 그래프 탐색</button>
+  </div>
+  <section id="cardsView" aria-label="프로젝트 카드"></section>
+  <div id="graphView" style="display:none">
   <div id="filterbar" role="toolbar" aria-label="스킬 필터"></div>
   <div class="stage">
     <div id="cy"></div>
@@ -101,6 +129,7 @@
       <button id="closep" aria-label="닫기">×</button>
       <div id="panel-body"></div>
     </aside>
+  </div>
   </div>
 
 <script>
@@ -130,15 +159,71 @@ async function loadGraph(candidates){
   throw new Error('graph.json not found');
 }
 loadGraph(['data/graph.json','../data/graph.json'])
-  .then(data=>{ GRAPH=data; try{ init(); }catch(e){ el('loading').textContent='그래프를 그리는 중 오류가 발생했습니다.'; console.error(e); } })
-  .catch(e=>{ el('loading').textContent='graph.json을 불러오지 못했습니다.'; console.error(e); });
+  .then(data=>{ GRAPH=data; try{ boot(); }catch(e){ el('cardsView').textContent='데이터를 표시하는 중 오류가 발생했습니다.'; console.error(e); } })
+  .catch(e=>{ el('cardsView').textContent='graph.json을 불러오지 못했습니다.'; console.error(e); });
+
+function boot(){
+  if(GRAPH.owner){ el('title').textContent=GRAPH.owner.name+' · 프로젝트 포트폴리오';
+    if(GRAPH.owner.tagline) el('tagline').textContent=GRAPH.owner.tagline; document.title=GRAPH.owner.name+' · 포트폴리오'; }
+  buildCards();
+  el('tab-cards').onclick=()=>showView('cards');
+  el('tab-graph').onclick=()=>showView('graph');
+  showView('cards'); // skimmable card grid is the default landing
+}
+
+function showView(v){
+  const graph = v==='graph';
+  el('tab-cards').setAttribute('aria-selected', graph?'false':'true');
+  el('tab-graph').setAttribute('aria-selected', graph?'true':'false');
+  el('cardsView').style.display = graph?'none':'block';
+  el('graphView').style.display = graph?'flex':'none';
+  if(graph){ initGraph(); if(cy){ setTimeout(()=>{ cy.resize(); cy.fit(undefined,45); },30); } } // graph inits lazily & needs resize after unhide
+}
+
+function buildCards(){
+  const projects = GRAPH.nodes.filter(n=>n.type==='project');
+  const groups = [
+    {key:'research', title:'🔬 메인 · 연구 / ML · MLOps'},
+    {key:'app',      title:'🧩 앱 · 웹 · 모바일 · 데스크톱 · 게임'}
+  ];
+  let html='<div class="cardWrap">';
+  groups.forEach(g=>{
+    const items = projects.filter(p=>(p.group||'app')===g.key);
+    if(!items.length) return;
+    html += `<div class="secTitle">${g.title} · ${items.length}</div><div class="cardGrid">`
+          + items.map(cardHtml).join('') + `</div>`;
+  });
+  el('cardsView').innerHTML = html + '</div>';
+}
+
+function cardHtml(p){
+  const d=p.detail||{};
+  const stack=(d.stack&&d.stack.length?d.stack
+      :GRAPH.edges.filter(e=>e.from===p.id&&e.rel==='uses').map(e=>(nodeById(e.to)||{}).label)).filter(Boolean);
+  const shown=stack.slice(0,6), extra=stack.length-shown.length;
+  const badges=shown.map(s=>`<span class="cb">${esc(s)}</span>`).join('')
+      +(extra>0?`<span class="cb more">+${extra}</span>`:'');
+  const demo=p.demo||{type:'none'};
+  const demoBtn = (demo.type!=='none'&&demo.url)
+    ? `<a class="cbtn" href="${esc(demo.url)}" target="_blank" rel="noopener">${demo.type==='live'?'라이브 데모':'데모'} ↗</a>`
+    : (demo.type!=='none' ? `<span class="cbtn dis">${demo.type==='live'?'라이브(준비중)':'데모 영상'}</span>` : '');
+  return `<article class="card">
+    <div class="cmeta">
+      <span class="badge status-${esc(p.status||'archived')}">${statusKo(p.status)}</span>
+      ${p.period?`<span class="badge">${esc(p.period)}</span>`:''}
+    </div>
+    <h3>${esc(p.label)}</h3>
+    <div class="csum">${esc(p.summary||'')}</div>
+    <div class="cbadges">${badges}</div>
+    <div class="cact"><a class="cbtn pri" href="${esc(p.docPath)}">상세 보기 →</a>${demoBtn}</div>
+  </article>`;
+}
 
 function nodeById(id){ return GRAPH.nodes.find(n=>n.id===id); }
 function edgesOf(id){ return GRAPH.edges.filter(e=>e.from===id||e.to===id); }
 
-function init(){
-  if(GRAPH.owner){ el('title').textContent = GRAPH.owner.name + ' · 프로젝트 포트폴리오';
-    if(GRAPH.owner.tagline) el('tagline').textContent = GRAPH.owner.tagline; document.title = GRAPH.owner.name+' · 포트폴리오 그래프'; }
+function initGraph(){
+  if(cy) return; // build once, lazily on first graph-view open
   buildLegend(); buildFilters();
 
   const elements=[];
