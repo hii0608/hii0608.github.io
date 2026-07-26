@@ -1,0 +1,22 @@
+# 포트폴리오에 실린 대상 프로젝트 목록
+# 형식: <owner>/<repo>  ->  <graph.json node id>
+# refresh-meta 워크플로가 이 목록을 읽어 lastCommit / commitCount / languages 만 갱신한다.
+
+# --- 메인: 연구 · ML · MLOps ---
+hii0608/classify_streaming        proj-classify-streaming
+hii0608/ImageRetreivalGS          proj-image-retrieval-gs
+hii0608/GR_subgraph               proj-gr-subgraph
+hii0608/compare_IR_CBIR           proj-compare-ir-cbir
+hii0608/bike_prediction_mlflow    proj-bike-mlflow
+hii0608/Lidar2dMapping            proj-lidar-2d-mapping
+
+# --- 앱: 웹 · 모바일 · 데스크톱 · 게임 ---
+hii0608/julgot                    proj-julgot
+hii0608/photobooth_sunna          proj-photobooth-sunna
+hii0608/todolist_custom           proj-todolist-custom
+hii0608/todoroom                  proj-todoroom
+hii0608/chronoland                proj-chronoland
+hii0608/paperSqueeze              proj-papersqueeze
+hii0608/snaplog_android           proj-snaplog-android
+hii0608/photomodoro_android       proj-photomodoro-android
+hii0608/perfect-loafer            proj-perfect-loafer

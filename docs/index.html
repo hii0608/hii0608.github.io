@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>hii0608 · 프로젝트 포트폴리오 그래프</title>
+<meta name="description" content="프로젝트·스킬·도메인의 관계를 인터랙티브 그래프로 탐색하는 포트폴리오" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/layout-base@2.0.1/layout-base.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cose-base@2.2.0/cose-base.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape-cose-bilkent@4.1.0/cytoscape-cose-bilkent.js"></script>
+<style>
+  :root{
+    --bg:#f6f7fb; --panel:#ffffff; --ink:#1b1f2a; --muted:#5b6472; --line:#e6e8ef;
+    --project:#0a78f5; --skill:#8a99ad; --domain:#6295d0;
+    --chip:#eef0f7; --shadow:0 8px 30px rgba(20,24,40,.10);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0e1017; --panel:#161a24; --ink:#e8eaf0; --muted:#9aa4b5; --line:#232838;
+      --chip:#1e2330; --shadow:0 10px 34px rgba(0,0,0,.5); }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;
+    background:var(--bg);color:var(--ink);overflow:hidden;display:flex;flex-direction:column}
+  header{padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel);z-index:5;position:relative}
+  header h1{margin:0;font-size:17px;letter-spacing:-.2px}
+  header p{margin:3px 0 0;font-size:12.5px;color:var(--muted)}
+  #filterbar{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);
+    background:var(--panel);max-height:112px;overflow:auto;z-index:4;position:relative}
+  .tag{border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;
+    padding:5px 11px;font-size:12px;cursor:pointer;white-space:nowrap;transition:.15s}
+  .tag[aria-pressed="true"]{background:var(--project);border-color:var(--project);color:#fff}
+  .tag.reset{background:transparent}
+  .tag.grp{font-weight:600}
+  .tag.grp[aria-pressed="true"]{background:#f5a524;border-color:#f5a524;color:#3a2e05}
+  #graphView{flex:1;min-height:0;display:flex;flex-direction:column}
+  .stage{position:relative;flex:1;min-height:0}
+  #cy{position:absolute;inset:0}
+  .legend{position:absolute;left:12px;bottom:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:9px 12px;font-size:12px;box-shadow:var(--shadow)}
+  .legend div{display:flex;align-items:center;gap:7px;margin:3px 0}
+  .dot{width:11px;height:11px;border-radius:50%}
+  /* side panel */
+  #panel{position:absolute;top:12px;right:12px;width:340px;max-width:calc(100% - 24px);
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+    padding:18px;transform:translateX(120%);transition:transform .25s ease;max-height:calc(100% - 24px);overflow:auto}
+  #panel.open{transform:translateX(0)}
+  #panel .ptype{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+  #panel h2{margin:8px 0 6px;font-size:18px;line-height:1.3}
+  #panel .summary{font-size:13.5px;color:var(--muted);line-height:1.55}
+  .meta{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+  .badge{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--chip);color:var(--ink)}
+  .badge.status-active{background:#dcfce7;color:#166534}
+  .badge.status-paused{background:#fef9c3;color:#854d0e}
+  .badge.status-archived{background:#e5e7eb;color:#374151}
+  @media (prefers-color-scheme:dark){
+    .badge.status-active{background:#0f2e1c;color:#5ee9a0}
+    .badge.status-paused{background:#332b06;color:#f5d472}
+    .badge.status-archived{background:#232838;color:#aab3c4}
+  }
+  .sect{margin-top:14px}
+  .sect h3{margin:0 0 6px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:11.5px;padding:4px 9px;border-radius:8px;background:var(--chip)}
+  .actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+  .btn{flex:1;text-align:center;text-decoration:none;font-size:13px;font-weight:600;padding:10px 12px;
+    border-radius:10px;border:1px solid var(--line);color:var(--ink);background:var(--chip);min-width:120px}
+  .btn.primary{background:var(--project);border-color:var(--project);color:#fff}
+  .btn.disabled{opacity:.5;pointer-events:none}
+  #closep{position:absolute;top:10px;right:12px;border:none;background:transparent;color:var(--muted);
+    font-size:20px;cursor:pointer;line-height:1}
+  .hint{position:absolute;top:12px;left:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:7px 11px;font-size:12px;color:var(--muted);box-shadow:var(--shadow)}
+  #tip{position:fixed;z-index:20;display:none;pointer-events:none;max-width:260px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 11px;
+    box-shadow:var(--shadow);font-size:12.5px;line-height:1.4;color:var(--ink)}
+  #tip .tsub{color:var(--muted);font-size:11.5px;margin-top:3px}
+  #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+  @media (max-width:640px){
+    #panel{top:auto;bottom:0;right:0;left:0;width:100%;max-width:100%;border-radius:16px 16px 0 0;
+      transform:translateY(110%);max-height:72%}
+    #panel.open{transform:translateY(0)}
+    .legend{font-size:11px;padding:7px 9px}
+    .hint{display:none}
+  }
+  /* view tabs */
+  #tabs{display:flex;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex:none;z-index:5;position:relative}
+  #tabs button{border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:9px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+  #tabs button[aria-selected="true"]{background:var(--project);border-color:var(--project);color:#fff}
+  /* card view */
+  #cardsView{flex:1;min-height:0;overflow:auto;padding:16px 16px 64px;background:var(--bg)}
+  .cardWrap{max-width:1160px;margin:0 auto}
+  .secTitle{font-size:13px;font-weight:700;color:var(--muted);margin:20px 4px 12px;letter-spacing:.3px}
+  .secTitle:first-child{margin-top:4px}
+  .cardGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:9px;box-shadow:var(--shadow)}
+  .card h3{margin:0;font-size:15px;line-height:1.35}
+  .card .cmeta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .card .csum{font-size:12.5px;color:var(--muted);line-height:1.55;flex:1}
+  .card .cbadges{display:flex;gap:5px;flex-wrap:wrap}
+  .card .cb{font-size:11px;padding:3px 8px;border-radius:7px;background:var(--chip);color:var(--ink)}
+  .card .cb.more{opacity:.6}
+  .card .cact{display:flex;gap:8px;margin-top:2px}
+  .card .cbtn{flex:1;text-align:center;text-decoration:none;font-size:12.5px;font-weight:600;padding:8px 6px;border-radius:9px;border:1px solid var(--line);color:var(--ink);background:var(--chip)}
+  .card .cbtn.pri{background:var(--project);border-color:var(--project);color:#fff}
+  .card .cbtn.dis{opacity:.45;pointer-events:none}
+</style>
+</head>
+<body>
+  <header>
+    <h1 id="title">hii0608 · 프로젝트 포트폴리오</h1>
+    <p id="tagline">그래프 기반 머신러닝과 MLOps 파이프라인</p>
+  </header>
+  <div id="tabs" role="tablist" aria-label="보기 전환">
+    <button id="tab-cards" role="tab" aria-selected="true">🗂️ 카드</button>
+    <button id="tab-graph" role="tab" aria-selected="false">🕸️ 그래프 탐색</button>
+  </div>
+  <section id="cardsView" aria-label="프로젝트 카드"></section>
+  <div id="graphView" style="display:none">
+  <div id="filterbar" role="toolbar" aria-label="스킬 필터"></div>
+  <div class="stage">
+    <div id="cy"></div>
+    <div id="loading">그래프를 불러오는 중…</div>
+    <div class="hint">노드를 클릭하면 상세 정보가 열립니다 · 스킬 태그로 필터링</div>
+    <div class="legend" id="legend"></div>
+    <div id="tip" role="tooltip"></div>
+    <aside id="panel" aria-live="polite">
+      <button id="closep" aria-label="닫기">×</button>
+      <div id="panel-body"></div>
+    </aside>
+  </div>
+  </div>
+
+<script>
+const PALETTES = {
+  blue: { project:'#0a78f5', domain:'#6295d0', skillLow:'#cfd6df', skillHigh:'#41607f', ring:'#f5a524' },
+  pink: { project:'#f2366e', domain:'#d57b96', skillLow:'#e8d3da', skillHigh:'#8f6470', ring:'#f5a524' }
+};
+const BASE = 'blue';
+const PALETTE = PALETTES[BASE];
+// skill nodes are colored along a low→high ramp by usage (freq encoded as depth + size)
+let SKILL_MAX = 1;
+const _h2r = h=>{h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));};
+const _r2h = a=>'#'+a.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+const lerpHex=(a,b,t)=>{const A=_h2r(a),B=_h2r(b);return _r2h(A.map((v,i)=>v+(B[i]-v)*t));};
+const skillColor=u=>lerpHex(PALETTE.skillLow, PALETTE.skillHigh, Math.pow(Math.min(u/SKILL_MAX,1),0.7));
+const TYPE_COLORS = { project:PALETTE.project, skill:PALETTE.skillHigh, domain:PALETTE.domain };
+const TYPE_LABEL  = { project:'프로젝트', skill:'스킬', domain:'도메인' };
+const REL_LABEL   = { uses:'사용', 'part-of':'분야', 'depends-on':'연관' };
+let GRAPH=null, cy=null, activeSkill=null, activeGroup=null;
+
+function el(id){return document.getElementById(id)}
+
+async function loadGraph(candidates){
+  for(const url of candidates){
+    try{ const r=await fetch(url); if(r.ok) return await r.json(); }catch(e){}
+  }
+  throw new Error('graph.json not found');
+}
+loadGraph(['data/graph.json','../data/graph.json'])
+  .then(data=>{ GRAPH=data; try{ boot(); }catch(e){ el('cardsView').textContent='데이터를 표시하는 중 오류가 발생했습니다.'; console.error(e); } })
+  .catch(e=>{ el('cardsView').textContent='graph.json을 불러오지 못했습니다.'; console.error(e); });
+
+function boot(){
+  if(GRAPH.owner){ el('title').textContent=GRAPH.owner.name+' · 프로젝트 포트폴리오';
+    if(GRAPH.owner.tagline) el('tagline').textContent=GRAPH.owner.tagline; document.title=GRAPH.owner.name+' · 포트폴리오'; }
+  buildCards();
+  el('tab-cards').onclick=()=>showView('cards');
+  el('tab-graph').onclick=()=>showView('graph');
+  showView('cards'); // skimmable card grid is the default landing
+}
+
+function showView(v){
+  const graph = v==='graph';
+  el('tab-cards').setAttribute('aria-selected', graph?'false':'true');
+  el('tab-graph').setAttribute('aria-selected', graph?'true':'false');
+  el('cardsView').style.display = graph?'none':'block';
+  el('graphView').style.display = graph?'flex':'none';
+  if(graph){ initGraph(); if(cy){ setTimeout(()=>{ cy.resize(); cy.fit(undefined,45); },30); } } // graph inits lazily & needs resize after unhide
+}
+
+function buildCards(){
+  const projects = GRAPH.nodes.filter(n=>n.type==='project');
+  const groups = [
+    {key:'research', title:'🔬 메인 · 연구 / ML · MLOps'},
+    {key:'app',      title:'🧩 앱 · 웹 · 모바일 · 데스크톱 · 게임'}
+  ];
+  let html='<div class="cardWrap">';
+  groups.forEach(g=>{
+    const items = projects.filter(p=>(p.group||'app')===g.key);
+    if(!items.length) return;
+    html += `<div class="secTitle">${g.title} · ${items.length}</div><div class="cardGrid">`
+          + items.map(cardHtml).join('') + `</div>`;
+  });
+  el('cardsView').innerHTML = html + '</div>';
+}
+
+function cardHtml(p){
+  const d=p.detail||{};
+  const stack=(d.stack&&d.stack.length?d.stack
+      :GRAPH.edges.filter(e=>e.from===p.id&&e.rel==='uses').map(e=>(nodeById(e.to)||{}).label)).filter(Boolean);
+  const shown=stack.slice(0,6), extra=stack.length-shown.length;
+  const badges=shown.map(s=>`<span class="cb">${esc(s)}</span>`).join('')
+      +(extra>0?`<span class="cb more">+${extra}</span>`:'');
+  const demo=p.demo||{type:'none'};
+  const demoBtn = (demo.type!=='none'&&demo.url)
+    ? `<a class="cbtn" href="${esc(demo.url)}" target="_blank" rel="noopener">${demo.type==='live'?'라이브 데모':'데모'} ↗</a>`
+    : (demo.type!=='none' ? `<span class="cbtn dis">${demo.type==='live'?'라이브(준비중)':'데모 영상'}</span>` : '');
+  return `<article class="card">
+    <div class="cmeta">
+      <span class="badge status-${esc(p.status||'archived')}">${statusKo(p.status)}</span>
+      ${p.period?`<span class="badge">${esc(p.period)}</span>`:''}
+    </div>
+    <h3>${esc(p.label)}</h3>
+    <div class="csum">${esc(p.summary||'')}</div>
+    <div class="cbadges">${badges}</div>
+    <div class="cact"><a class="cbtn pri" href="${esc(p.docPath)}">상세 보기 →</a>${demoBtn}</div>
+  </article>`;
+}
+
+function nodeById(id){ return GRAPH.nodes.find(n=>n.id===id); }
+function edgesOf(id){ return GRAPH.edges.filter(e=>e.from===id||e.to===id); }
+
+function initGraph(){
+  if(cy) return; // build once, lazily on first graph-view open
+  buildLegend(); buildFilters();
+
+  const elements=[];
+  GRAPH.nodes.forEach(n=>elements.push({data:{id:n.id,label:n.label,type:n.type,group:n.group||'',
+    weightSum:GRAPH.edges.filter(e=>e.to===n.id||e.from===n.id).length}}));
+  GRAPH.edges.forEach((e,i)=>elements.push({data:{id:'e'+i,source:e.from,target:e.to,rel:e.rel,weight:e.weight||1}}));
+
+  // size encodes importance (SNS-style): skills grow with how many projects use them
+  SKILL_MAX = Math.max(1, ...GRAPH.nodes.filter(n=>n.type==='skill')
+    .map(n=>GRAPH.edges.filter(e=>e.to===n.id).length));
+  const nodeSize = n=>{
+    const t=n.data('type'), deg=n.data('weightSum');
+    if(t==='project') return n.data('group')==='research'?66:44;   // main cards clearly larger (size = importance)
+    if(t==='domain')  return 26+Math.min(deg*3,18);
+    return 15+Math.min(deg*6,44);                                   // skill: bigger = used more
+  };
+  const shapeOf = n=> n.data('type')==='project' ? 'round-rectangle' : 'ellipse'; // shape only splits project vs rest
+  cy=cytoscape({
+    container:el('cy'), elements, wheelSensitivity:.25,
+    style:[
+      {selector:'node',style:{
+        'background-color':n=>n.data('type')==='skill'?skillColor(n.data('weightSum')):(TYPE_COLORS[n.data('type')]||'#888'),
+        'shape':shapeOf,
+        'label':'data(label)','color':getVar('--ink'),
+        'font-size':n=>n.data('type')==='project'?(n.data('group')==='research'?'13px':'12px'):'11px',
+        'font-weight':n=>n.data('type')==='project'?'700':'500',
+        'text-valign':'bottom','text-halign':'center','text-margin-y':n=>n.data('type')==='project'?2:3,
+        'width':nodeSize,'height':nodeSize,
+        'text-max-width':'110px','text-wrap':'ellipsis','border-width':0,'transition-property':'opacity','transition-duration':'.18s'}},
+      {selector:'node[type="project"]',style:{'border-width':2,'border-color':'#ffffff'}}, // crisp edge on stars
+      {selector:'node[type="domain"]',style:{'border-width':2,'border-color':'#ffffff'}}, // ring separates domain circles from skill circles
+      {selector:'edge',style:{'width':e=>Math.max(1,(e.data('weight')||1)*.8),'line-color':getVar('--line'),
+        'curve-style':'bezier','opacity':.7,'target-arrow-shape':e=>e.data('rel')==='depends-on'?'triangle':'none',
+        'target-arrow-color':getVar('--line'),'arrow-scale':.8}},
+      {selector:'.faded',style:{'opacity':.1,'text-opacity':.12}},
+      {selector:'node.sel',style:{'border-width':4,'border-color':getVar('--ink')}},
+      {selector:'edge.hl',style:{'line-color':TYPE_COLORS.project,'opacity':.95,'target-arrow-color':TYPE_COLORS.project}}
+    ],
+    layout:{name:'grid'} // placeholder; real force layout applied below
+  });
+  runLayout();
+  el('loading').style.display='none';
+  cy.on('tap','node',evt=>selectNode(evt.target.id()));
+  cy.on('tap',evt=>{ if(evt.target===cy){ closePanel(); } });
+
+  // hover tooltip: reveal full (possibly truncated) label + context
+  const cyEl=el('cy');
+  cy.on('mouseover','node',evt=>{ const n=nodeById(evt.target.id()); if(!n) return;
+    el('tip').innerHTML=tipHtml(n); el('tip').style.display='block';
+    if(evt.originalEvent) positionTip(evt.originalEvent); cyEl.style.cursor='pointer'; });
+  cy.on('mouseout','node',()=>{ el('tip').style.display='none'; cyEl.style.cursor='default'; });
+  cy.on('mousemove',evt=>{ if(el('tip').style.display==='block'&&evt.originalEvent) positionTip(evt.originalEvent); });
+}
+
+function tipHtml(n){
+  if(n.type==='project'){
+    return `<b>${esc(n.label)}</b><div class="tsub">${esc(n.summary||'')}</div>`;
+  }
+  const uses=GRAPH.edges.filter(e=>e.to===n.id).length;
+  const kind=(TYPE_LABEL[n.type]||n.type)+(n.category?' · '+esc(n.category):'');
+  return `<b>${esc(n.label)}</b><div class="tsub">${kind}${n.type==='skill'?` · ${uses}개 프로젝트에서 사용`:''}</div>`;
+}
+
+function positionTip(e){
+  const t=el('tip'), pad=14, r=t.getBoundingClientRect();
+  let x=e.clientX+pad, y=e.clientY+pad;
+  if(x+r.width>innerWidth)  x=e.clientX-r.width-pad;
+  if(y+r.height>innerHeight) y=e.clientY-r.height-pad;
+  t.style.left=Math.max(4,x)+'px'; t.style.top=Math.max(4,y)+'px';
+}
+
+function runLayout(){
+  // Prefer the nicer cose-bilkent force layout; gracefully fall back to the
+  // built-in 'cose' layout if that CDN extension failed to load.
+  let opts = {name:'cose',animate:true,idealEdgeLength:95,nodeRepulsion:400000,padding:40};
+  try{
+    cy.layout({name:'cose-bilkent'}); // throws if extension not registered
+    opts = {name:'cose-bilkent',animate:'end',animationDuration:600,idealEdgeLength:95,nodeRepulsion:6500,padding:40};
+  }catch(e){ /* keep 'cose' fallback */ }
+  cy.layout(opts).run();
+}
+
+function getVar(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function buildLegend(){
+  const g=(sym,color,label,extra='')=>`<div><span style="color:${color};font-size:15px;line-height:1;width:16px;text-align:center">${sym}</span>${label}${extra}</div>`;
+  el('legend').innerHTML =
+      g('■',TYPE_COLORS.project,'프로젝트',' <span style="opacity:.6">(큰 것 = 메인·연구/ML)</span>')
+    + g('●',TYPE_COLORS.domain,'도메인')
+    + g('●',TYPE_COLORS.skill,'스킬',' <span style="opacity:.6">(크기·진하기 = 사용빈도)</span>');
+}
+
+function buildFilters(){
+  const skills = GRAPH.nodes.filter(n=>n.type==='skill')
+    .map(s=>({id:s.id,label:s.label,deg:GRAPH.edges.filter(e=>e.to===s.id).length}))
+    .sort((a,b)=>b.deg-a.deg);
+  const bar=el('filterbar');
+  const reset=document.createElement('button');
+  reset.className='tag reset';reset.textContent='전체 보기';reset.setAttribute('aria-pressed','true');
+  reset.onclick=()=>{setSkill(null);setGroup(null);}; bar.appendChild(reset);
+  // group chips (main = research/ML, app)
+  const hasGroups = GRAPH.nodes.some(n=>n.type==='project'&&n.group);
+  if(hasGroups){
+    [['research','⭐ 메인 (연구·ML)'],['app','앱 프로젝트']].forEach(([g,label])=>{
+      const b=document.createElement('button');b.className='tag grp';b.textContent=label;
+      b.setAttribute('aria-pressed','false');b.dataset.group=g;
+      b.onclick=()=>setGroup(activeGroup===g?null:g); bar.appendChild(b);
+    });
+  }
+  skills.forEach(s=>{
+    const b=document.createElement('button');b.className='tag';b.textContent=s.label;
+    b.setAttribute('aria-pressed','false');b.dataset.id=s.id;
+    b.onclick=()=>setSkill(activeSkill===s.id?null:s.id); bar.appendChild(b);
+  });
+}
+
+function syncFilterButtons(){
+  document.querySelectorAll('#filterbar .tag').forEach(t=>{
+    if(t.classList.contains('reset')) t.setAttribute('aria-pressed', (!activeSkill&&!activeGroup)?'true':'false');
+    else if(t.dataset.group!==undefined) t.setAttribute('aria-pressed', t.dataset.group===activeGroup?'true':'false');
+    else t.setAttribute('aria-pressed', t.dataset.id===activeSkill?'true':'false');
+  });
+}
+
+function applyFade(keep){
+  cy.batch(()=>{
+    cy.elements().removeClass('faded');
+    if(!keep) return;
+    cy.nodes().forEach(n=>{ if(!keep.has(n.id())) n.addClass('faded'); });
+    cy.edges().forEach(e=>{ if(!(keep.has(e.source().id())&&keep.has(e.target().id()))) e.addClass('faded'); });
+  });
+}
+
+function setSkill(id){
+  activeSkill=id; if(id) activeGroup=null;
+  syncFilterButtons();
+  if(!cy) return;
+  if(!id){ applyFade(null); return; }
+  const projUsing=new Set(GRAPH.edges.filter(e=>e.to===id&&e.rel==='uses').map(e=>e.from));
+  const keep=new Set([id,...projUsing]);
+  GRAPH.edges.forEach(e=>{ if(projUsing.has(e.from)&&e.rel==='part-of') keep.add(e.to); });
+  applyFade(keep);
+}
+
+function setGroup(g){
+  activeGroup=g; if(g) activeSkill=null;
+  syncFilterButtons();
+  if(!cy) return;
+  if(!g){ applyFade(null); return; }
+  const projs=new Set(GRAPH.nodes.filter(n=>n.type==='project'&&n.group===g).map(n=>n.id));
+  const keep=new Set(projs);
+  GRAPH.edges.forEach(e=>{ if(projs.has(e.from)) keep.add(e.to); }); // skills + domains of those projects
+  applyFade(keep);
+}
+
+function selectNode(id){
+  const n=nodeById(id); if(!n) return;
+  cy.nodes().removeClass('sel'); cy.edges().removeClass('hl');
+  cy.$('#'+CSS.escape(id)).addClass('sel');
+  edgesOf(id).forEach((e,i)=>{ /* highlight */ });
+  cy.edges().forEach(e=>{ if(e.source().id()===id||e.target().id()===id) e.addClass('hl'); });
+  renderPanel(n);
+  el('panel').classList.add('open');
+}
+
+function renderPanel(n){
+  const b=el('panel-body');
+  if(n.type==='project'){
+    const skillEdges=edgesOf(n.id).filter(e=>e.rel==='uses'&&e.from===n.id);
+    const skillChips=skillEdges.map(e=>`<span class="chip">${esc(nodeById(e.to).label)}</span>`).join('');
+    const domains=edgesOf(n.id).filter(e=>e.rel==='part-of'&&e.from===n.id).map(e=>nodeById(e.to).label);
+    const rel=edgesOf(n.id).filter(e=>e.rel==='depends-on').map(e=>{
+      const other=e.from===n.id?e.to:e.from; return nodeById(other).label; });
+    const demo=n.demo||{type:'none'};
+    const demoLabel={live:'라이브 데모',video:'데모 영상',none:'데모 없음'}[demo.type]||'데모';
+    const demoBtn = (demo.type!=='none'&&demo.url)
+      ? `<a class="btn" href="${esc(demo.url)}" target="_blank" rel="noopener">${demoLabel} ↗</a>`
+      : `<span class="btn disabled">${demoLabel}</span>`;
+    b.innerHTML=`
+      <div class="ptype" style="color:${TYPE_COLORS.project}">프로젝트</div>
+      <h2>${esc(n.label)}</h2>
+      <div class="summary">${esc(n.summary||'')}</div>
+      <div class="meta">
+        <span class="badge status-${esc(n.status||'archived')}">${statusKo(n.status)}</span>
+        ${n.period?`<span class="badge">${esc(n.period)}</span>`:''}
+        ${n.confidence==='low'?`<span class="badge">추정 정보</span>`:''}
+      </div>
+      <div class="sect"><h3>기술 스택</h3><div class="chips">${skillChips}</div></div>
+      ${domains.length?`<div class="sect"><h3>분야</h3><div class="chips">${domains.map(d=>`<span class="chip">${esc(d)}</span>`).join('')}</div></div>`:''}
+      ${rel.length?`<div class="sect"><h3>연관 프로젝트</h3><div class="chips">${rel.map(d=>`<span class="chip">${esc(d)}</span>`).join('')}</div></div>`:''}
+      <div class="actions">
+        <a class="btn primary" href="${esc(n.docPath)}">상세 보기 →</a>
+        ${demoBtn}
+      </div>`;
+  } else {
+    const color=TYPE_COLORS[n.type];
+    const used=GRAPH.edges.filter(e=>e.to===n.id).map(e=>nodeById(e.from)).filter(x=>x&&x.type==='project');
+    b.innerHTML=`
+      <div class="ptype" style="color:${color}">${TYPE_LABEL[n.type]}${n.category?' · '+esc(n.category):''}</div>
+      <h2>${esc(n.label)}</h2>
+      <div class="summary">이 ${TYPE_LABEL[n.type]} 노드를 사용하는 프로젝트 ${used.length}개</div>
+      <div class="sect"><h3>연결된 프로젝트</h3><div class="chips">${used.map(p=>`<span class="chip" style="cursor:pointer" onclick="selectNode('${p.id}')">${esc(p.label)}</span>`).join('')||'<span class="chip">없음</span>'}</div></div>`;
+  }
+}
+
+function statusKo(s){return {active:'진행 중',paused:'중단/보류',archived:'보관'}[s]||'보관';}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function closePanel(){el('panel').classList.remove('open');if(cy){cy.nodes().removeClass('sel');cy.edges().removeClass('hl');}}
+el('closep').onclick=closePanel;
+window.selectNode=selectNode;
+</script>
+</body>
+</html>

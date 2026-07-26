@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>프로젝트 상세 · hii0608</title>
+<meta name="description" content="프로젝트 상세 소개" />
+<style>
+  :root{ --bg:#f6f7fb; --panel:#ffffff; --ink:#1b1f2a; --muted:#5b6472; --line:#e6e8ef;
+    --project:#6366f1; --chip:#eef0f7; --shadow:0 8px 30px rgba(20,24,40,.08); }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0e1017; --panel:#161a24; --ink:#e8eaf0; --muted:#9aa4b5; --line:#232838;
+      --chip:#1e2330; --shadow:0 10px 34px rgba(0,0,0,.5); } }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;line-height:1.65}
+  .wrap{max-width:760px;margin:0 auto;padding:28px 20px 80px}
+  a.back{display:inline-block;color:var(--muted);text-decoration:none;font-size:13px;margin-bottom:18px}
+  a.back:hover{color:var(--ink)}
+  .ptype{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--project)}
+  h1{font-size:27px;margin:8px 0 6px;letter-spacing:-.3px}
+  .lead{font-size:15px;color:var(--muted);margin:0 0 14px}
+  .meta{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px}
+  .badge{font-size:11.5px;padding:4px 10px;border-radius:999px;background:var(--chip)}
+  .badge.status-active{background:#dcfce7;color:#166534}
+  .badge.status-paused{background:#fef9c3;color:#854d0e}
+  .badge.status-archived{background:#e5e7eb;color:#374151}
+  @media (prefers-color-scheme:dark){
+    .badge.status-active{background:#0f2e1c;color:#5ee9a0}
+    .badge.status-paused{background:#332b06;color:#f5d472}
+    .badge.status-archived{background:#232838;color:#aab3c4}}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:14px;box-shadow:var(--shadow)}
+  section h2{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 10px}
+  section p{margin:0}
+  .num{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:6px;
+    background:var(--project);color:#fff;font-size:12px;font-weight:700;margin-right:8px}
+  ul{margin:0;padding-left:2px;list-style:none}
+  ul.feat li{padding:9px 0;border-bottom:1px dashed var(--line);display:flex;align-items:flex-start;gap:6px}
+  ul.feat li:last-child{border-bottom:0}
+  ul.plain li{padding-left:16px;position:relative;margin:5px 0}
+  ul.plain li:before{content:"›";position:absolute;left:0;color:var(--project);font-weight:700}
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{font-size:12.5px;padding:5px 11px;border-radius:8px;background:var(--chip)}
+  .cmd{background:var(--chip);border-radius:8px;padding:9px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:12.5px;margin:6px 0;overflow-x:auto;white-space:pre;color:var(--ink)}
+  .demoNote{font-size:13px;color:var(--muted)}
+  .btn{display:inline-block;text-decoration:none;font-weight:600;font-size:13.5px;padding:10px 16px;border-radius:10px;
+    background:var(--project);color:#fff;margin-top:6px}
+  .btn.ghost{background:var(--chip);color:var(--ink);margin-left:8px}
+  .warn{font-size:12.5px;color:var(--muted);border-left:3px solid var(--project);padding-left:10px;margin-top:6px}
+  #err{color:var(--muted);padding:40px 0}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <a class="back" href="../index.html">← 그래프로 돌아가기</a>
+  <div id="content"><p id="err">불러오는 중…</p></div>
+</div>
+<script>
+const REL={live:'라이브 데모',video:'데모 영상',none:'데모 없음'};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function statusKo(s){return {active:'진행 중',paused:'중단/보류',archived:'보관'}[s]||'보관';}
+const id=new URLSearchParams(location.search).get('id');
+
+async function loadGraph(candidates){
+  for(const url of candidates){
+    try{ const r=await fetch(url); if(r.ok) return await r.json(); }catch(e){}
+  }
+  throw new Error('graph.json not found');
+}
+loadGraph(['../data/graph.json','../../data/graph.json']).then(g=>{
+  const n=g.nodes.find(x=>x.id===id && x.type==='project');
+  if(!n){ document.getElementById('err').textContent='프로젝트를 찾을 수 없습니다.'; return; }
+  render(n,g);
+}).catch(()=>{document.getElementById('err').textContent='데이터를 불러오지 못했습니다.';});
+
+function render(n,g){
+  document.title = n.label+' · hii0608';
+  const d=n.detail||{};
+  const skills = (d.stack&&d.stack.length? d.stack
+      : g.edges.filter(e=>e.from===n.id&&e.rel==='uses').map(e=>(g.nodes.find(x=>x.id===e.to)||{}).label))
+      .filter(Boolean);
+  const domains = g.edges.filter(e=>e.from===n.id&&e.rel==='part-of')
+      .map(e=>(g.nodes.find(x=>x.id===e.to)||{}).label).filter(Boolean);
+  const demo=n.demo||{type:'none'};
+  const sec=(title,num,inner)=>`<section><h2>${num?`<span class="num">${num}</span>`:''}${esc(title)}</h2>${inner}</section>`;
+
+  let demoInner='';
+  if(demo.type==='live'&&demo.url){ demoInner=`<a class="btn" href="${esc(demo.url)}" target="_blank" rel="noopener">라이브 데모 열기 ↗</a>`; }
+  else if(demo.type==='live'){ demoInner=`<p class="demoNote">배포형 웹앱 — 데모 URL은 준비되는 대로 연결됩니다.</p>`; }
+  else if(demo.type==='video'){
+    demoInner=`<p class="demoNote">아래 명령을 실행한 화면을 녹화해 데모로 사용합니다${demo.url?', 영상 링크는 아래 버튼에서 확인하세요.':'.'}</p>`;
+    (demo.commands||[]).forEach(c=>demoInner+=`<div class="cmd">${esc(c)}</div>`);
+    if(demo.url) demoInner+=`<a class="btn" href="${esc(demo.url)}" target="_blank" rel="noopener">데모 영상 보기 ↗</a>`;
+  } else {
+    demoInner=`<p class="demoNote">${esc(demo.note||'코드 공개 없이 방법론 설명으로 대체합니다.')}</p>`;
+  }
+
+  document.getElementById('content').innerHTML=`
+    <div class="ptype">프로젝트</div>
+    <h1>${esc(n.label)}</h1>
+    <div class="meta">
+      <span class="badge status-${esc(n.status||'archived')}">${statusKo(n.status)}</span>
+      ${n.period?`<span class="badge">${esc(n.period)}</span>`:''}
+      ${n.languages?`<span class="badge">${esc(n.languages.join(', '))}</span>`:''}
+      ${n.confidence==='low'?`<span class="badge">추정 정보</span>`:''}
+    </div>
+    ${sec('한 줄 요약',1,`<p>${esc(n.summary||'')}</p>`)}
+    ${sec('해결하려는 문제와 배경',2,`<p>${esc(d.problem||'—')}</p>`)}
+    ${sec('기술 스택',3,`<div class="chips">${skills.map(s=>`<span class="chip">${esc(s)}</span>`).join('')}</div>
+       ${domains.length?`<div style="margin-top:12px"><div class="chips">${domains.map(s=>`<span class="chip">📂 ${esc(s)}</span>`).join('')}</div></div>`:''}`)}
+    ${sec('아키텍처',4,`<p>${esc(d.architecture||'—')}</p>`)}
+    ${sec('핵심 기능',5,`<ul class="feat">${(d.features||[]).map((f,i)=>`<li><span class="num">${i+1}</span><span>${esc(f)}</span></li>`).join('')||'<li>—</li>'}</ul>`)}
+    ${sec('데모',6,demoInner)}
+    ${sec('현재 상태와 알려진 한계',7,`<p><b>상태:</b> ${statusKo(n.status)}</p><p class="warn">${esc(d.limitations||'—')}</p>`)}
+    ${sec('다음 단계',8,`<ul class="plain">${(d.next||[]).map(s=>`<li>${esc(s)}</li>`).join('')||'<li>—</li>'}</ul>`)}
+    <a class="back" style="margin-top:22px" href="../index.html">← 그래프로 돌아가기</a>`;
+}
+</script>
+</body>
+</html>

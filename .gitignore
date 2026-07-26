@@ -1,0 +1,7 @@
+report.md
+.env
+.env.*
+*.local
+
+__pycache__/
+*.pyc
