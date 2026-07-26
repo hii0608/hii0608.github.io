@@ -52,12 +52,10 @@
   .meta{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
   .badge{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--chip);color:var(--ink)}
   .badge.status-active{background:#dcfce7;color:#166534}
-  .badge.status-paused{background:#fef9c3;color:#854d0e}
-  .badge.status-archived{background:#e5e7eb;color:#374151}
+  .badge.status-paused,.badge.status-archived{background:#e6edf7;color:#3a5578}
   @media (prefers-color-scheme:dark){
     .badge.status-active{background:#0f2e1c;color:#5ee9a0}
-    .badge.status-paused{background:#332b06;color:#f5d472}
-    .badge.status-archived{background:#232838;color:#aab3c4}
+    .badge.status-paused,.badge.status-archived{background:#20293a;color:#9db4d4}
   }
   .sect{margin-top:14px}
   .sect h3{margin:0 0 6px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
@@ -205,8 +203,8 @@ function cardHtml(p){
       +(extra>0?`<span class="cb more">+${extra}</span>`:'');
   const demo=p.demo||{type:'none'};
   const demoBtn = (demo.type!=='none'&&demo.url)
-    ? `<a class="cbtn" href="${esc(demo.url)}" target="_blank" rel="noopener">${demo.type==='live'?'라이브 데모':'데모'} ↗</a>`
-    : (demo.type!=='none' ? `<span class="cbtn dis">${demo.type==='live'?'라이브(준비중)':'데모 영상'}</span>` : '');
+    ? `<a class="cbtn" href="${esc(demo.url)}" target="_blank" rel="noopener">${demo.type==='live'?'라이브 데모':'데모 영상'} ↗</a>`
+    : '';
   return `<article class="card">
     <div class="cmeta">
       <span class="badge status-${esc(p.status||'archived')}">${statusKo(p.status)}</span>
@@ -401,7 +399,7 @@ function renderPanel(n){
     const demoLabel={live:'라이브 데모',video:'데모 영상',none:'데모 없음'}[demo.type]||'데모';
     const demoBtn = (demo.type!=='none'&&demo.url)
       ? `<a class="btn" href="${esc(demo.url)}" target="_blank" rel="noopener">${demoLabel} ↗</a>`
-      : `<span class="btn disabled">${demoLabel}</span>`;
+      : '';
     b.innerHTML=`
       <div class="ptype" style="color:${TYPE_COLORS.project}">프로젝트</div>
       <h2>${esc(n.label)}</h2>
@@ -429,7 +427,7 @@ function renderPanel(n){
   }
 }
 
-function statusKo(s){return {active:'진행 중',paused:'중단/보류',archived:'보관'}[s]||'보관';}
+function statusKo(s){return s==='active'?'진행 중':'완료';}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function closePanel(){el('panel').classList.remove('open');if(cy){cy.nodes().removeClass('sel');cy.edges().removeClass('hl');}}
 el('closep').onclick=closePanel;

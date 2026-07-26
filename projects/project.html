@@ -23,12 +23,10 @@
   .meta{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px}
   .badge{font-size:11.5px;padding:4px 10px;border-radius:999px;background:var(--chip)}
   .badge.status-active{background:#dcfce7;color:#166534}
-  .badge.status-paused{background:#fef9c3;color:#854d0e}
-  .badge.status-archived{background:#e5e7eb;color:#374151}
+  .badge.status-paused,.badge.status-archived{background:#e6edf7;color:#3a5578}
   @media (prefers-color-scheme:dark){
     .badge.status-active{background:#0f2e1c;color:#5ee9a0}
-    .badge.status-paused{background:#332b06;color:#f5d472}
-    .badge.status-archived{background:#232838;color:#aab3c4}}
+    .badge.status-paused,.badge.status-archived{background:#20293a;color:#9db4d4}}
   section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:14px;box-shadow:var(--shadow)}
   section h2{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 10px}
   section p{margin:0}
@@ -59,7 +57,7 @@
 <script>
 const REL={live:'라이브 데모',video:'데모 영상',none:'데모 없음'};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function statusKo(s){return {active:'진행 중',paused:'중단/보류',archived:'보관'}[s]||'보관';}
+function statusKo(s){return s==='active'?'진행 중':'완료';}
 const id=new URLSearchParams(location.search).get('id');
 
 async function loadGraph(candidates){
