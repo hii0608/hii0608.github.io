@@ -12,7 +12,7 @@
 <style>
   :root{
     --bg:#f6f7fb; --panel:#ffffff; --ink:#1b1f2a; --muted:#5b6472; --line:#e6e8ef;
-    --project:#6366f1; --skill:#14b8a6; --domain:#f59e0b;
+    --project:#0a78f5; --skill:#8a99ad; --domain:#6295d0;
     --chip:#eef0f7; --shadow:0 8px 30px rgba(20,24,40,.10);
   }
   @media (prefers-color-scheme:dark){
@@ -33,7 +33,7 @@
   .tag[aria-pressed="true"]{background:var(--project);border-color:var(--project);color:#fff}
   .tag.reset{background:transparent}
   .tag.grp{font-weight:600}
-  .tag.grp[aria-pressed="true"]{background:#f5c451;border-color:#f5c451;color:#3a2e05}
+  .tag.grp[aria-pressed="true"]{background:#f5a524;border-color:#f5a524;color:#3a2e05}
   .stage{position:relative;height:calc(100% - 0px)}
   #cy{position:absolute;inset:0}
   .legend{position:absolute;left:12px;bottom:12px;background:var(--panel);border:1px solid var(--line);
@@ -99,7 +99,19 @@
   </div>
 
 <script>
-const TYPE_COLORS = { project:'#6366f1', skill:'#14b8a6', domain:'#f59e0b' };
+const PALETTES = {
+  blue: { project:'#0a78f5', domain:'#6295d0', skillLow:'#cfd6df', skillHigh:'#41607f', ring:'#f5a524' },
+  pink: { project:'#f2366e', domain:'#d57b96', skillLow:'#e8d3da', skillHigh:'#8f6470', ring:'#f5a524' }
+};
+const BASE = 'blue';
+const PALETTE = PALETTES[BASE];
+// skill nodes are colored along a low→high ramp by usage (freq encoded as depth + size)
+let SKILL_MAX = 1;
+const _h2r = h=>{h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));};
+const _r2h = a=>'#'+a.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+const lerpHex=(a,b,t)=>{const A=_h2r(a),B=_h2r(b);return _r2h(A.map((v,i)=>v+(B[i]-v)*t));};
+const skillColor=u=>lerpHex(PALETTE.skillLow, PALETTE.skillHigh, Math.pow(Math.min(u/SKILL_MAX,1),0.7));
+const TYPE_COLORS = { project:PALETTE.project, skill:PALETTE.skillHigh, domain:PALETTE.domain };
 const TYPE_LABEL  = { project:'프로젝트', skill:'스킬', domain:'도메인' };
 const REL_LABEL   = { uses:'사용', 'part-of':'분야', 'depends-on':'연관' };
 let GRAPH=null, cy=null, activeSkill=null, activeGroup=null;
@@ -129,22 +141,31 @@ function init(){
     weightSum:GRAPH.edges.filter(e=>e.to===n.id||e.from===n.id).length}}));
   GRAPH.edges.forEach((e,i)=>elements.push({data:{id:'e'+i,source:e.from,target:e.to,rel:e.rel,weight:e.weight||1}}));
 
+  // size encodes importance (SNS-style): skills grow with how many projects use them
+  SKILL_MAX = Math.max(1, ...GRAPH.nodes.filter(n=>n.type==='skill')
+    .map(n=>GRAPH.edges.filter(e=>e.to===n.id).length));
   const nodeSize = n=>{
-    if(n.data('type')!=='project') return 16+Math.min(n.data('weightSum')*3,20);
-    return (n.data('group')==='research'?46:34)+Math.min(n.data('weightSum')*2,18); // research = main = larger
+    const t=n.data('type'), deg=n.data('weightSum');
+    if(t==='project') return n.data('group')==='research'?64:50;   // stars, main larger
+    if(t==='domain')  return 26+Math.min(deg*3,18);
+    return 15+Math.min(deg*6,44);                                   // skill: bigger = used more
   };
+  const shapeOf = n=> n.data('type')==='project' ? 'star' : 'ellipse'; // shape only splits project vs rest
   cy=cytoscape({
     container:el('cy'), elements, wheelSensitivity:.25,
     style:[
       {selector:'node',style:{
-        'background-color':n=>TYPE_COLORS[n.data('type')]||'#888',
+        'background-color':n=>n.data('type')==='skill'?skillColor(n.data('weightSum')):(TYPE_COLORS[n.data('type')]||'#888'),
+        'shape':shapeOf,
         'label':'data(label)','color':getVar('--ink'),
         'font-size':n=>n.data('type')==='project'?(n.data('group')==='research'?'13px':'12px'):'11px',
         'font-weight':n=>n.data('type')==='project'?'700':'500',
-        'text-valign':'bottom','text-halign':'center','text-margin-y':4,
+        'text-valign':'bottom','text-halign':'center','text-margin-y':n=>n.data('type')==='project'?2:3,
         'width':nodeSize,'height':nodeSize,
         'text-max-width':'110px','text-wrap':'ellipsis','border-width':0,'transition-property':'opacity','transition-duration':'.18s'}},
-      {selector:'node[type="project"][group="research"]',style:{'border-width':3,'border-color':'#f5c451'}}, // gold ring = main
+      {selector:'node[type="project"]',style:{'border-width':2,'border-color':'#ffffff'}}, // crisp edge on stars
+      {selector:'node[type="domain"]',style:{'border-width':2,'border-color':'#ffffff'}}, // ring separates domain circles from skill circles
+      {selector:'node[type="project"][group="research"]',style:{'border-width':4,'border-color':PALETTE.ring}}, // gold ring = main
       {selector:'edge',style:{'width':e=>Math.max(1,(e.data('weight')||1)*.8),'line-color':getVar('--line'),
         'curve-style':'bezier','opacity':.7,'target-arrow-shape':e=>e.data('rel')==='depends-on'?'triangle':'none',
         'target-arrow-color':getVar('--line'),'arrow-scale':.8}},
@@ -174,9 +195,12 @@ function runLayout(){
 function getVar(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 
 function buildLegend(){
-  el('legend').innerHTML = Object.keys(TYPE_COLORS).map(t=>
-    `<div><span class="dot" style="background:${TYPE_COLORS[t]}"></span>${TYPE_LABEL[t]}</div>`).join('')
-    + `<div><span class="dot" style="background:transparent;border:2px solid #f5c451"></span>메인 (연구·ML)</div>`;
+  const g=(sym,color,label,extra='')=>`<div><span style="color:${color};font-size:15px;line-height:1;width:16px;text-align:center">${sym}</span>${label}${extra}</div>`;
+  el('legend').innerHTML =
+      g('★',TYPE_COLORS.project,'프로젝트')
+    + g('●',TYPE_COLORS.domain,'도메인')
+    + g('●',TYPE_COLORS.skill,'스킬',' <span style="opacity:.6">(크기·진하기 = 사용빈도)</span>')
+    + g('★',PALETTE.ring,'메인 (연구·ML)');
 }
 
 function buildFilters(){
