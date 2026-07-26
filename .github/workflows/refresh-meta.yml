@@ -1,0 +1,47 @@
+name: Refresh project metadata
+
+# graph.json 의 lastCommit / commitCount / languages 필드만 갱신한다.
+# summary / status / demo 등 사람이 작성한 필드는 절대 건드리지 않는다.
+# 변경이 있으면 main 에 직접 푸시하지 않고 PR 을 생성한다 (검토 후 머지).
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'   # 매주 월요일 00:00 UTC = 09:00 KST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Update metadata fields in graph.json
+        env:
+          REPO_PAT: ${{ secrets.REPO_PAT }}
+        run: |
+          python .github/scripts/refresh_meta.py
+
+      - name: Create pull request if changed
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.REPO_PAT }}
+          branch: chore/refresh-meta
+          delete-branch: true
+          commit-message: "chore: refresh project metadata (lastCommit/commitCount/languages)"
+          title: "chore: refresh project metadata"
+          body: |
+            자동 생성된 메타데이터 갱신 PR 입니다.
+
+            `data/repos.txt` 의 대상 프로젝트에 대해 **lastCommit / commitCount / languages** 필드만 갱신했습니다.
+            요약(summary)·상태(status)·데모(demo) 등 사람이 작성한 필드는 변경하지 않았습니다.
+
+            diff 를 확인한 뒤 머지하세요.
+          labels: automated, metadata

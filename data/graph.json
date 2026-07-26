@@ -1,0 +1,306 @@
+{
+  "generatedAt": "2026-07-26T00:00:00Z",
+  "owner": {
+    "name": "hii0608",
+    "tagline": "그래프 기반 머신러닝과 MLOps 파이프라인을 다루는 개발자",
+    "site": "https://hii0608.github.io"
+  },
+  "nodes": [
+    {
+      "id": "proj-classify-streaming",
+      "type": "project",
+      "label": "실시간 객체 검출·재학습 파이프라인",
+      "summary": "YOLOv9·DeepSORT 실시간 검출 결과를 DB에 적재하고 Airflow로 재학습까지 자동화한 MLOps 파이프라인",
+      "status": "paused",
+      "period": "2024-11",
+      "commitCount": 3,
+      "lastCommit": "2024-11",
+      "languages": ["Python"],
+      "docPath": "projects/project.html?id=proj-classify-streaming",
+      "demo": {
+        "type": "video",
+        "url": "",
+        "commands": [
+          "docker compose up -d  # 전체 스택(PostgreSQL·Airflow·MLflow·Superset) 기동",
+          "Airflow UI에서 검출 DAG와 재학습 DAG를 트리거",
+          "MLflow UI에서 실험·모델 버전을, 대시보드에서 검출 집계를 확인"
+        ]
+      },
+      "confidence": "high",
+      "detail": {
+        "problem": "실시간 스트림에서 객체를 검출·추적하고, 그 결과를 쌓아 주기적으로 모델을 재학습하는 전 과정을 하나의 파이프라인으로 익히는 것이 목표였다. 검출 자체보다 Airflow DAG와 MLflow를 활용한 데이터·모델 라이프사이클 자동화에 초점을 두었다.",
+        "stack": ["Python", "PyTorch", "YOLOv9", "DeepSORT", "Apache Airflow", "MLflow", "PostgreSQL", "Superset", "Docker Compose"],
+        "architecture": "검출 계층은 YOLOv9로 객체를 찾고 DeepSORT로 프레임 간 추적 ID를 부여한다. 검출·추적 결과는 관계형 데이터베이스의 결과 테이블에 시계열로 적재된다. 두 개의 Airflow DAG가 각각 검출 파이프라인과 모델 재학습을 주기적으로 오케스트레이션하고, MLflow가 실험과 모델을 추적·등록한다. 집계된 검출 통계는 대시보드로 시각화되며, 전체 스택은 컨테이너 오케스트레이션으로 묶여 한 번에 기동된다.",
+        "features": [
+          "YOLOv9·DeepSORT로 실시간 검출·추적을 수행하고 결과를 시계열 DB에 적재",
+          "Airflow DAG로 검출·재학습 파이프라인을 스케줄링하고 오케스트레이션",
+          "MLflow 기반 실험 추적·모델 버전 관리와 검출 집계 대시보드"
+        ],
+        "limitations": "실제 서비스 최적화보다 파이프라인 학습에 초점을 둔 프로토타입이라, 지연·정확도 튜닝과 장기 운영 안정성은 검증되지 않았다.",
+        "next": [
+          "실데이터·실카메라 스트림 대상 성능 벤치마크",
+          "데이터 드리프트 감지 기반 재학습 트리거 자동화",
+          "검출 집계 대시보드 고도화"
+        ]
+      }
+    },
+    {
+      "id": "proj-image-retrieval-gs",
+      "type": "project",
+      "label": "CBIR-SubSG · 장면 그래프 이미지 검색",
+      "summary": "장면 그래프의 서브그래프 학습과 A* 그래프 편집 거리를 결합한 내용 기반 이미지 검색 연구",
+      "status": "paused",
+      "period": "2022-05 ~ 2024-11",
+      "commitCount": 103,
+      "lastCommit": "2024-11",
+      "languages": ["Python"],
+      "docPath": "projects/project.html?id=proj-image-retrieval-gs",
+      "demo": {
+        "type": "video",
+        "url": "",
+        "commands": [
+          "python3 -m cbir_subsg.train   # GNN 인코더 학습",
+          "python3 -m cbir_subsg.test    # 학습된 인코더 분석",
+          "장면 그래프 질의 → 검색 결과 상위 후보 시각화"
+        ]
+      },
+      "confidence": "high",
+      "detail": {
+        "problem": "이미지를 픽셀이 아니라 '객체와 객체 간 관계'를 표현한 장면 그래프로 바라보고, 그래프 구조 유사도로 유사 이미지를 검색하는 방법을 연구했다. 서브그래프 단위 학습과 그래프 편집 거리를 결합해 검색 정확도를 높이는 것이 핵심 아이디어다.",
+        "stack": ["Python", "PyTorch", "PyTorch Geometric", "DeepSNAP", "NetworkX", "fastText"],
+        "architecture": "장면 그래프를 입력으로 GNN 인코더가 유사한 서브그래프 쌍을 임베딩 공간에서 가깝게 배치하도록 순서 임베딩(order embedding)으로 학습한다. 검색 단계에서는 학습된 인코더로 후보를 좁힌 뒤, A* 알고리즘을 적용한 그래프 편집 거리(GED)로 정밀 유사도를 계산한다. 서브그래프 연산과 그래프-텐서 동기화는 PyTorch Geometric·DeepSNAP이, 그래프 처리는 NetworkX가 담당한다.",
+        "features": [
+          "서브그래프 순서 임베딩을 학습하는 GNN 인코더",
+          "A* 그래프 편집 거리 기반 정밀 그래프 유사도 계산",
+          "장면 그래프 데이터 파이프라인과 검색 결과 분석 도구"
+        ],
+        "limitations": "그래프 편집 거리 계산 비용이 커 대규모 데이터셋에서의 확장성이 제약되며, 검색 성능이 장면 그래프 품질에 크게 의존한다.",
+        "next": [
+          "GED 근사·가속으로 검색 지연 단축",
+          "다양한 장면 그래프 데이터셋으로 일반화 검증"
+        ]
+      }
+    },
+    {
+      "id": "proj-gr-subgraph",
+      "type": "project",
+      "label": "서브그래프 기반 그래프 표현 학습",
+      "summary": "서브그래프·상대위치 인코딩 기반으로 그래프 표현을 학습하는 이미지 검색 연구의 후속 실험",
+      "status": "archived",
+      "period": "2024-02",
+      "commitCount": 4,
+      "lastCommit": "2024-02",
+      "languages": ["Python"],
+      "docPath": "projects/project.html?id=proj-gr-subgraph",
+      "demo": {
+        "type": "none",
+        "url": "",
+        "note": "연구용 라이브러리·실험 코드로 공개 데모 대신 방법론 설명으로 대체"
+      },
+      "confidence": "low",
+      "detail": {
+        "problem": "앞선 장면 그래프 이미지 검색 연구를 확장해, 서브그래프와 상대 위치 인코딩(RPE) 기반 표현 학습으로 그래프 특징을 더 잘 추출하는 방법을 실험했다.",
+        "stack": ["Python", "PyTorch", "PyTorch Geometric", "NetworkX"],
+        "architecture": "이미지·장면 그래프에서 서브그래프를 추출하고, 상대 위치 인코딩 기반 표현 학습과 오토인코더 학습으로 그래프 특징을 추출·검색하는 실험 코드로 구성된다. 앞선 CBIR-SubSG 연구의 검색 파이프라인을 재사용·확장한다.",
+        "features": [
+          "서브그래프 추출과 상대 위치 인코딩 기반 표현 학습",
+          "오토인코더 기반 그래프 특징 학습",
+          "장면·질의 그래프 특징 추출과 검색 실험"
+        ],
+        "limitations": "연구용 실험 코드로 문서화가 제한적이며, 재현을 위한 데이터·설정 정리가 필요하다.",
+        "next": [
+          "실험 결과 정리 및 기준선 대비 평가",
+          "표현 학습 방식 간 비교"
+        ]
+      }
+    },
+    {
+      "id": "proj-compare-ir-cbir",
+      "type": "project",
+      "label": "장면 그래프 검색 시각화·비교 도구",
+      "summary": "이미지 내 객체·관계를 그래프로 시각화하고 검색 기법을 비교하는 분석 도구",
+      "status": "archived",
+      "period": "2023-11 ~ 2024-11",
+      "commitCount": 5,
+      "lastCommit": "2024-11",
+      "languages": ["Python"],
+      "docPath": "projects/project.html?id=proj-compare-ir-cbir",
+      "demo": {
+        "type": "video",
+        "url": "",
+        "commands": [
+          "python videovisualize.py         # 장면 그래프·검색 결과 시각화",
+          "python query_videovisualize.py   # 질의 그래프 단위 결과 비교"
+        ]
+      },
+      "confidence": "high",
+      "detail": {
+        "problem": "그래프 기반 이미지 검색의 결과를 사람이 눈으로 검증하기 어려웠다. 이미지 내 객체와 관계, 그리고 검색된 결과를 시각화해 서로 다른 검색 기법을 정성적으로 비교할 수 있는 도구가 필요했다.",
+        "stack": ["Python", "NetworkX", "matplotlib"],
+        "architecture": "장면 그래프의 객체와 객체 간 관계를 그래프로 렌더링하고, 질의 그래프·영상 단위로 검색 결과를 나열·비교하는 스크립트로 구성된다. 그래프 시각화는 NetworkX와 matplotlib로 수행한다.",
+        "features": [
+          "이미지 내 객체·관계 그래프 시각화",
+          "질의 그래프·영상 단위 검색 결과 비교",
+          "검색 기법 간 정성 비교를 위한 시각화 산출"
+        ],
+        "limitations": "정성적 시각화 중심의 분석 도구로, 정량 지표 산출은 별도 파이프라인에 의존한다.",
+        "next": [
+          "정량 평가 지표와 시각화 연동",
+          "대화형 시각화로 확장"
+        ]
+      }
+    },
+    {
+      "id": "proj-bike-mlflow",
+      "type": "project",
+      "label": "자전거 수요 예측 · MLflow 라이프사이클",
+      "summary": "XGBoost·LSTM 등 여러 모델을 MLflow로 학습·추적·서빙까지 다룬 예측 프로젝트",
+      "status": "archived",
+      "period": "2024-11",
+      "commitCount": 3,
+      "lastCommit": "2024-11",
+      "languages": ["Python"],
+      "docPath": "projects/project.html?id=proj-bike-mlflow",
+      "demo": {
+        "type": "video",
+        "url": "",
+        "commands": [
+          "python models/model_train_xgb.py   # XGBoost 학습 및 MLflow 로깅",
+          "mlflow ui                          # 실험·지표·아티팩트 확인",
+          "MLflow pyfunc 모델 로드 → 예측 서빙 확인"
+        ]
+      },
+      "confidence": "high",
+      "detail": {
+        "problem": "모델을 만드는 것에서 끝내지 않고, 학습→실험 추적→패키징→서빙으로 이어지는 MLflow 기반 라이프사이클 전체를 자전거 수요 예측 문제로 직접 익히는 것이 목표였다.",
+        "stack": ["Python", "MLflow", "XGBoost", "TensorFlow", "PyTorch", "pandas"],
+        "architecture": "공개 자전거 수요 데이터셋을 전처리한 뒤 XGBoost, LSTM(TensorFlow/PyTorch), 결정트리 등 여러 모델을 학습한다. 각 실험은 MLflow로 파라미터·지표·아티팩트가 추적되고, 최종 모델은 MLflow pyfunc 형식으로 패키징해 서빙까지 이어진다.",
+        "features": [
+          "다중 모델(XGBoost·LSTM·결정트리) 학습·비교",
+          "MLflow 실험 추적과 지표·아티팩트 로깅",
+          "MLflow pyfunc 패키징을 통한 모델 서빙"
+        ],
+        "limitations": "학습 목적의 예제로 데이터셋·피처가 한정적이며, 하이퍼파라미터 탐색과 온라인 서빙 검증은 제한적이다.",
+        "next": [
+          "피처 엔지니어링·하이퍼파라미터 탐색 확대",
+          "서빙 API·모니터링 연동"
+        ]
+      }
+    },
+    {
+      "id": "proj-lidar-2d-mapping",
+      "type": "project",
+      "label": "2D LiDAR 매핑",
+      "summary": "YDLidar G2의 각도·거리 빔을 좌표로 변환해 실시간 2D 지도를 그리는 센싱 프로젝트",
+      "status": "archived",
+      "period": "2021-12",
+      "commitCount": 5,
+      "lastCommit": "2021-12",
+      "languages": ["Python"],
+      "docPath": "projects/project.html?id=proj-lidar-2d-mapping",
+      "demo": {
+        "type": "video",
+        "url": "",
+        "commands": [
+          "python main.py    # CSV 로그 기반 2D 매핑 애니메이션 재생",
+          "python 2dMapping.py  # 실시간 시각화 위젯 실행"
+        ]
+      },
+      "confidence": "high",
+      "detail": {
+        "problem": "2D LiDAR 센서가 출력하는 원시 각도·거리 데이터를 사람이 이해할 수 있는 평면 지도로 바꾸는, 센싱 데이터 처리의 기초를 다루는 프로젝트다.",
+        "stack": ["Python", "NumPy", "PyQt5", "matplotlib"],
+        "architecture": "LiDAR 센서가 출력한 (각도, 거리) 빔 데이터를 읽어 극좌표를 직교좌표로 변환한 뒤, PyQt5 GUI 위 matplotlib 애니메이션으로 실시간 2D 점군 지도를 그린다.",
+        "features": [
+          "LiDAR 각도·거리 빔의 좌표 변환",
+          "PyQt5·matplotlib 기반 실시간 2D 시각화",
+          "CSV 로그 재생 기반 매핑 확인"
+        ],
+        "limitations": "단일 2D 평면 매핑에 한정되며, SLAM 수준의 위치 추정·누적 정합은 포함하지 않는다.",
+        "next": [
+          "연속 스캔 정합(SLAM)으로 확장",
+          "실시간 센서 스트림 연동 안정화"
+        ]
+      }
+    },
+
+    { "id": "skill-python", "type": "skill", "label": "Python", "category": "backend" },
+    { "id": "skill-pytorch", "type": "skill", "label": "PyTorch", "category": "data" },
+    { "id": "skill-pyg", "type": "skill", "label": "PyTorch Geometric", "category": "data" },
+    { "id": "skill-deepsnap", "type": "skill", "label": "DeepSNAP", "category": "data" },
+    { "id": "skill-networkx", "type": "skill", "label": "NetworkX", "category": "data" },
+    { "id": "skill-fasttext", "type": "skill", "label": "fastText", "category": "data" },
+    { "id": "skill-mlflow", "type": "skill", "label": "MLflow", "category": "infra" },
+    { "id": "skill-airflow", "type": "skill", "label": "Apache Airflow", "category": "infra" },
+    { "id": "skill-docker", "type": "skill", "label": "Docker Compose", "category": "infra" },
+    { "id": "skill-superset", "type": "skill", "label": "Superset", "category": "data" },
+    { "id": "skill-postgres", "type": "skill", "label": "PostgreSQL", "category": "backend" },
+    { "id": "skill-yolo", "type": "skill", "label": "YOLOv9", "category": "data" },
+    { "id": "skill-deepsort", "type": "skill", "label": "DeepSORT", "category": "data" },
+    { "id": "skill-xgboost", "type": "skill", "label": "XGBoost", "category": "data" },
+    { "id": "skill-tensorflow", "type": "skill", "label": "TensorFlow", "category": "data" },
+    { "id": "skill-pandas", "type": "skill", "label": "pandas", "category": "data" },
+    { "id": "skill-numpy", "type": "skill", "label": "NumPy", "category": "data" },
+    { "id": "skill-matplotlib", "type": "skill", "label": "matplotlib", "category": "tooling" },
+    { "id": "skill-pyqt", "type": "skill", "label": "PyQt5", "category": "frontend" },
+
+    { "id": "domain-graphml", "type": "domain", "label": "그래프 머신러닝" },
+    { "id": "domain-cbir", "type": "domain", "label": "내용 기반 이미지 검색" },
+    { "id": "domain-mlops", "type": "domain", "label": "MLOps" },
+    { "id": "domain-cv", "type": "domain", "label": "컴퓨터 비전" },
+    { "id": "domain-forecasting", "type": "domain", "label": "시계열 예측" },
+    { "id": "domain-robotics", "type": "domain", "label": "로보틱스·센싱" }
+  ],
+  "edges": [
+    { "from": "proj-classify-streaming", "to": "skill-python", "rel": "uses", "weight": 4 },
+    { "from": "proj-classify-streaming", "to": "skill-pytorch", "rel": "uses", "weight": 3 },
+    { "from": "proj-classify-streaming", "to": "skill-yolo", "rel": "uses", "weight": 5 },
+    { "from": "proj-classify-streaming", "to": "skill-deepsort", "rel": "uses", "weight": 4 },
+    { "from": "proj-classify-streaming", "to": "skill-airflow", "rel": "uses", "weight": 5 },
+    { "from": "proj-classify-streaming", "to": "skill-mlflow", "rel": "uses", "weight": 4 },
+    { "from": "proj-classify-streaming", "to": "skill-postgres", "rel": "uses", "weight": 3 },
+    { "from": "proj-classify-streaming", "to": "skill-superset", "rel": "uses", "weight": 3 },
+    { "from": "proj-classify-streaming", "to": "skill-docker", "rel": "uses", "weight": 4 },
+    { "from": "proj-classify-streaming", "to": "domain-mlops", "rel": "part-of" },
+    { "from": "proj-classify-streaming", "to": "domain-cv", "rel": "part-of" },
+
+    { "from": "proj-image-retrieval-gs", "to": "skill-python", "rel": "uses", "weight": 5 },
+    { "from": "proj-image-retrieval-gs", "to": "skill-pytorch", "rel": "uses", "weight": 5 },
+    { "from": "proj-image-retrieval-gs", "to": "skill-pyg", "rel": "uses", "weight": 5 },
+    { "from": "proj-image-retrieval-gs", "to": "skill-deepsnap", "rel": "uses", "weight": 4 },
+    { "from": "proj-image-retrieval-gs", "to": "skill-networkx", "rel": "uses", "weight": 4 },
+    { "from": "proj-image-retrieval-gs", "to": "skill-fasttext", "rel": "uses", "weight": 3 },
+    { "from": "proj-image-retrieval-gs", "to": "domain-graphml", "rel": "part-of" },
+    { "from": "proj-image-retrieval-gs", "to": "domain-cbir", "rel": "part-of" },
+
+    { "from": "proj-gr-subgraph", "to": "skill-python", "rel": "uses", "weight": 4 },
+    { "from": "proj-gr-subgraph", "to": "skill-pytorch", "rel": "uses", "weight": 4 },
+    { "from": "proj-gr-subgraph", "to": "skill-pyg", "rel": "uses", "weight": 4 },
+    { "from": "proj-gr-subgraph", "to": "skill-networkx", "rel": "uses", "weight": 3 },
+    { "from": "proj-gr-subgraph", "to": "domain-graphml", "rel": "part-of" },
+    { "from": "proj-gr-subgraph", "to": "domain-cbir", "rel": "part-of" },
+    { "from": "proj-gr-subgraph", "to": "proj-image-retrieval-gs", "rel": "depends-on" },
+
+    { "from": "proj-compare-ir-cbir", "to": "skill-python", "rel": "uses", "weight": 3 },
+    { "from": "proj-compare-ir-cbir", "to": "skill-networkx", "rel": "uses", "weight": 3 },
+    { "from": "proj-compare-ir-cbir", "to": "skill-matplotlib", "rel": "uses", "weight": 4 },
+    { "from": "proj-compare-ir-cbir", "to": "domain-graphml", "rel": "part-of" },
+    { "from": "proj-compare-ir-cbir", "to": "domain-cbir", "rel": "part-of" },
+    { "from": "proj-compare-ir-cbir", "to": "proj-image-retrieval-gs", "rel": "depends-on" },
+
+    { "from": "proj-bike-mlflow", "to": "skill-python", "rel": "uses", "weight": 4 },
+    { "from": "proj-bike-mlflow", "to": "skill-mlflow", "rel": "uses", "weight": 5 },
+    { "from": "proj-bike-mlflow", "to": "skill-xgboost", "rel": "uses", "weight": 4 },
+    { "from": "proj-bike-mlflow", "to": "skill-tensorflow", "rel": "uses", "weight": 3 },
+    { "from": "proj-bike-mlflow", "to": "skill-pytorch", "rel": "uses", "weight": 3 },
+    { "from": "proj-bike-mlflow", "to": "skill-pandas", "rel": "uses", "weight": 4 },
+    { "from": "proj-bike-mlflow", "to": "domain-mlops", "rel": "part-of" },
+    { "from": "proj-bike-mlflow", "to": "domain-forecasting", "rel": "part-of" },
+
+    { "from": "proj-lidar-2d-mapping", "to": "skill-python", "rel": "uses", "weight": 4 },
+    { "from": "proj-lidar-2d-mapping", "to": "skill-numpy", "rel": "uses", "weight": 4 },
+    { "from": "proj-lidar-2d-mapping", "to": "skill-pyqt", "rel": "uses", "weight": 4 },
+    { "from": "proj-lidar-2d-mapping", "to": "skill-matplotlib", "rel": "uses", "weight": 4 },
+    { "from": "proj-lidar-2d-mapping", "to": "domain-robotics", "rel": "part-of" }
+  ]
+}
