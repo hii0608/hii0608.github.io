@@ -56,9 +56,11 @@
   .meta{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
   .badge{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--chip);color:var(--ink)}
   .badge.status-active{background:#dcfce7;color:#166534}
+  .badge.status-prerelease{background:#fef3c7;color:#92600a}
   .badge.status-paused,.badge.status-archived{background:#e6edf7;color:#3a5578}
   @media (prefers-color-scheme:dark){
     .badge.status-active{background:#0f2e1c;color:#5ee9a0}
+    .badge.status-prerelease{background:#33280a;color:#f0c465}
     .badge.status-paused,.badge.status-archived{background:#20293a;color:#9db4d4}
   }
   .sect{margin-top:14px}
@@ -484,7 +486,7 @@ function renderPanel(n){
   }
 }
 
-function statusKo(s){return s==='active'?'진행 중':'완료';}
+function statusKo(s){return s==='active'?'진행 중':s==='prerelease'?'배포 준비중':'완료';}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function closePanel(){el('panel').classList.remove('open');if(cy){cy.nodes().removeClass('sel');cy.edges().removeClass('hl');}}
 el('closep').onclick=closePanel;
