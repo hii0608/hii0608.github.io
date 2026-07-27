@@ -486,7 +486,7 @@ function renderPanel(n){
   }
 }
 
-function statusKo(s){return s==='active'?'진행 중':s==='prerelease'?'배포 준비중':'완료';}
+function statusKo(s){return s==='active'?'진행 중':s==='prerelease'?'개발 완료':'완료';}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function closePanel(){el('panel').classList.remove('open');if(cy){cy.nodes().removeClass('sel');cy.edges().removeClass('hl');}}
 el('closep').onclick=closePanel;
