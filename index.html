@@ -90,6 +90,20 @@
   #tabs{display:flex;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex:none;z-index:5;position:relative}
   #tabs button{border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:9px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
   #tabs button[aria-selected="true"]{background:var(--project);border-color:var(--project);color:#fff}
+  /* about view */
+  #aboutView{flex:1;min-height:0;overflow:auto;padding:22px 16px 64px;background:var(--bg)}
+  .aboutWrap{max-width:720px;margin:0 auto}
+  .aeyebrow{font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--project);margin:0}
+  .aname{font-size:30px;margin:4px 0 12px;letter-spacing:-.5px}
+  .aintro{font-size:15px;line-height:1.7;color:var(--muted);margin:0 0 8px}
+  .asec{margin-top:22px}
+  .asec h3{font-size:15px;margin:0 0 10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .asec .amuted{font-size:12.5px;font-weight:500;color:var(--muted)}
+  .asec ul{margin:0;padding-left:18px}
+  .asec li{margin:7px 0;line-height:1.6;font-size:14px}
+  .asec li b{font-weight:700}
+  .achips{font-size:13.5px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;line-height:1.9}
+  .ahint{margin-top:26px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
   /* card view */
   #cardsView{flex:1;min-height:0;overflow:auto;padding:16px 16px 64px;background:var(--bg)}
   .cardWrap{max-width:1160px;margin:0 auto}
@@ -115,9 +129,37 @@
     <p id="tagline">그래프 기반 머신러닝과 MLOps 파이프라인</p>
   </header>
   <div id="tabs" role="tablist" aria-label="보기 전환">
-    <button id="tab-cards" role="tab" aria-selected="true">🗂️ 카드</button>
+    <button id="tab-about" role="tab" aria-selected="true">🙋 소개</button>
+    <button id="tab-cards" role="tab" aria-selected="false">🗂️ 카드</button>
     <button id="tab-graph" role="tab" aria-selected="false">🕸️ 그래프 탐색</button>
   </div>
+  <section id="aboutView" aria-label="소개">
+    <div class="aboutWrap">
+      <p class="aeyebrow">AI ENGINEER</p>
+      <h2 class="aname">이하은</h2>
+      <p class="aintro">신호 처리 기반 이상 탐지부터 딥러닝 모델 실서비스 운영까지 전 주기를 다루는 AI 엔지니어입니다. 컴퓨터 비전과 시계열 이상 탐지를 중심으로 산업 현장 자동화 문제를 풀어왔고, GNN 기반 이미지 검색 연구 배경을 갖고 있습니다.</p>
+      <div class="asec">
+        <h3>경력 · AI Engineer <span class="amuted">2024.11 ~ 현재</span></h3>
+        <ul>
+          <li><b>아날로그 게이지 자동 판독</b> — YOLOv10 탐지·분류, ResNet-18 바늘 keypoint, PaddleOCR, SwinFIR 초해상도, TensorRT 추론 최적화</li>
+          <li><b>적외선 영상 유해가스 탐지</b> — 적외선 카메라 기반 YOLO 검출 모델 개발·검증</li>
+          <li><b>철도 차량 CBM 이상 탐지 &amp; MLOps</b> — 진동 신호 처리(FFT·결함주파수)·통계 임계값 설계, TranAD/AutoEncoder, Airflow·Docker 자동 재학습·배포 파이프라인</li>
+        </ul>
+      </div>
+      <div class="asec">
+        <h3>연구 · 한국교통대학교 컴퓨터공학 석사 <span class="amuted">2024</span></h3>
+        <ul>
+          <li>GNN 기반 장면 그래프 이미지 검색(석사 논문), 다중 카메라 객체 재식별, 궤적 이상 탐지</li>
+          <li>한국컴퓨터종합학술대회(KCC) 2024 우수발표논문상</li>
+        </ul>
+      </div>
+      <div class="asec">
+        <h3>기술</h3>
+        <div class="achips">Python · PyTorch · TensorFlow · OpenCV · Docker · Apache Airflow · AWS · MySQL · Linux · Git</div>
+      </div>
+      <p class="ahint">아래 <b>🗂️ 카드</b> · <b>🕸️ 그래프 탐색</b> 탭에서 프로젝트 15개를 둘러보세요.</p>
+    </div>
+  </section>
   <section id="cardsView" aria-label="프로젝트 카드"></section>
   <div id="graphView" style="display:none">
   <div id="filterbar" role="toolbar" aria-label="스킬 필터"></div>
@@ -173,18 +215,18 @@ function boot(){
   if(GRAPH.owner){ el('title').textContent=GRAPH.owner.name+' · 프로젝트 포트폴리오';
     if(GRAPH.owner.tagline) el('tagline').textContent=GRAPH.owner.tagline; document.title=GRAPH.owner.name+' · 포트폴리오'; }
   buildCards();
+  el('tab-about').onclick=()=>showView('about');
   el('tab-cards').onclick=()=>showView('cards');
   el('tab-graph').onclick=()=>showView('graph');
-  showView('cards'); // skimmable card grid is the default landing
+  showView('about'); // professional intro is the landing view
 }
 
 function showView(v){
-  const graph = v==='graph';
-  el('tab-cards').setAttribute('aria-selected', graph?'false':'true');
-  el('tab-graph').setAttribute('aria-selected', graph?'true':'false');
-  el('cardsView').style.display = graph?'none':'block';
-  el('graphView').style.display = graph?'flex':'none';
-  if(graph){ initGraph(); if(cy){ setTimeout(()=>{ cy.resize(); cy.fit(undefined,45); },30); } } // graph inits lazily & needs resize after unhide
+  ['about','cards','graph'].forEach(k=>el('tab-'+k).setAttribute('aria-selected', k===v?'true':'false'));
+  el('aboutView').style.display = v==='about'?'block':'none';
+  el('cardsView').style.display = v==='cards'?'block':'none';
+  el('graphView').style.display = v==='graph'?'flex':'none';
+  if(v==='graph'){ initGraph(); if(cy){ setTimeout(()=>{ cy.resize(); cy.fit(undefined,45); },30); } } // graph inits lazily & needs resize after unhide
 }
 
 function buildCards(){
